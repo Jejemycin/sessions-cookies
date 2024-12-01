@@ -2,6 +2,9 @@ import express from "express";
 import bodyParser from "body-parser";
 import pg from "pg";
 import bcrypt from "bcrypt";
+import passport from "passport";
+import { Strategy } from "passport-local";
+import session from "express-session";
 
 const app = express();
 const port = 3000;
@@ -10,11 +13,24 @@ const saltRounds = 10;
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
+app.use(session({
+  secret: "TOPSECRETWORD",
+  resave: false,
+  saveUninitialized: true
+}));
+
+/*passport module must go after the session initialization.
+This is very important else it won't work */
+
+app.use(passport.initialize());
+/* The passport.session has to happen after the session has been initialized.*/
+app.use(passport.session());
+
 const db = new pg.Client({
   user: "postgres",
   host: "localhost",
   database: "secrets",
-  password: "123456",
+  password: "Swordfish@1984",
   port: 5432,
 });
 db.connect();
@@ -29,6 +45,14 @@ app.get("/login", (req, res) => {
 
 app.get("/register", (req, res) => {
   res.render("register.ejs");
+});
+
+app.get("/secrets", (req, res)=>{
+  if (req.isAuthenticated()){
+    res.render("secrets.ejs")
+  } else {
+    res.redirect("/login")
+  }
 });
 
 app.post("/register", async (req, res) => {
